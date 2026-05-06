@@ -5,10 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>安心スプレッドシート カレンダー</title>
     <style>
-        body { margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f5f7fb; color: #333; height: 100vh; }
-        
-        /* 初期設定画面のスタイル */
-        .setup-container { max-width: 600px; margin: 100px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; }
+        body { margin: 40px; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f5f7fb; color: #333; }
+        .container { max-width: 600px; margin: 50px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; }
         h2 { color: #2c3e50; margin-bottom: 10px; }
         p { color: #666; font-size: 14px; margin-bottom: 30px; line-height: 1.6; }
         .btn { padding: 12px 24px; font-size: 16px; background-color: #4285F4; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: background 0.2s; }
@@ -17,41 +15,12 @@
         .error-card { background: #fce8e6; color: #c5221f; padding: 15px; border-radius: 6px; margin-top: 20px; font-weight: bold; display: none; }
         .loading-spinner { border: 4px solid rgba(0,0,0,0.1); width: 24px; height: 24px; border-radius: 50%; border-left-color: #4285F4; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* メインアプリ画面（左右分割レイアウト） */
-        #mainApp { display: none; height: 100vh; box-sizing: border-box; padding: 20px; gap: 20px; }
-        
-        /* 左側1/3：タスク管理ウィンドウ */
-        .task-window { width: 33.33%; background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 20px; display: flex; flex-direction: column; box-sizing: border-box; cursor: pointer; }
-        .task-window h3 { margin-top: 0; color: #2c3e50; border-bottom: 2px solid #f0f4f8; padding-bottom: 10px; }
-        .task-list { flex: 1; overflow-y: auto; padding: 10px 0; }
-        
-        /* ドラッグするタスクの見た目 */
-        .task-item { background: #e8f0fe; color: #1967d2; padding: 12px; margin-bottom: 10px; border-radius: 6px; font-weight: bold; cursor: grab; border-left: 5px solid #4285F4; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .task-item:active { cursor: grabbing; }
-
-        /* 右側2/3：5月カレンダー */
-        .calendar-window { width: 66.66%; background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; }
-        .calendar-header { font-size: 24px; font-weight: bold; color: #2c3e50; text-align: center; margin-bottom: 20px; }
-        
-        /* カレンダーのグリッド配置（7列） */
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; flex: 1; }
-        .weekday { text-align: center; font-weight: bold; color: #7f8c8d; padding-bottom: 5px; border-bottom: 1px solid #eee; }
-        
-        /* カレンダーの日付マス */
-        .calendar-day { background: #fdfefe; border: 1px solid #eef2f5; border-radius: 6px; padding: 8px; display: flex; flex-direction: column; min-height: 90px; transition: background 0.2s; }
-        .calendar-day.drag-over { background: #e8f0fe; border: 2px dashed #4285F4; }
-        .day-number { font-weight: bold; color: #555; margin-bottom: 5px; }
-        .calendar-day.empty { background: #f9fafb; border: none; }
-        
-        /* 日付マスの中にドロップされた予定の見た目 */
-        .placed-task { background: #4285F4; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-top: 4px; font-weight: bold; }
     </style>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
-<div id="setupScreen" class="setup-container">
+<div class="container">
     <h2>マイ・スマートカレンダー</h2>
     <p>
         データはあなた自身のGoogleスプレッドシートに安全に保管されます。<br>
@@ -66,39 +35,22 @@
     <div id="errorArea" class="error-card"></div>
 </div>
 
-<div id="mainApp">
-    <div class="task-window" onclick="addNewTaskPrompt(event)">
-        <h3>未配置のタスク (クリックで追加)</h3>
-        <div class="task-list" id="taskList"></div>
-    </div>
-
-    <div class="calendar-window">
-        <div class="calendar-header">2026年 5月</div>
-        <div class="calendar-grid" id="calendarGrid">
-            <div class="weekday">日</div><div class="weekday">月</div><div class="weekday">火</div>
-            <div class="weekday">水</div><div class="weekday">木</div><div class="weekday">金</div><div class="weekday">土</div>
-        </div>
-    </div>
-</div>
-
 <script>
+    // クライアントIDは貼ってくれたものをそのままセットしてあります！
     const CLIENT_ID = "228515909111-oedvocakrjt69jaj7lj9bd75oea68ovb.apps.googleusercontent.com";
+
     const SCOPES = "https://www.googleapis.com/auth/spreadsheets";
-    
+
     let tokenClient;
     let accessToken = null;
-    let taskIdCounter = 0;
 
-    // Googleスクリプトが読み込まれるのを安全に待つ初期化
     window.onload = function() {
-        if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
-            initGoogleAuth();
-        } else {
-            setTimeout(window.onload, 100);
+        if (CLIENT_ID.includes("ここにあなたの")) {
+            showError("コード内の CLIENT_ID をあなたのものに書き換えてください！");
+            document.getElementById("authBtn").disabled = true;
+            return;
         }
-    };
 
-    function initGoogleAuth() {
         tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID,
             scope: SCOPES,
@@ -108,15 +60,14 @@
                     return;
                 }
                 accessToken = tokenResponse.access_token;
+
+                // 認証成功したら既存チェックへ
                 proceedAfterAuth();
             },
         });
-    }
+    };
 
     function handleAuthClick() {
-        if (!tokenClient) {
-            initGoogleAuth();
-        }
         if (accessToken === null) {
             tokenClient.requestAccessToken({ prompt: 'consent' });
         } else {
@@ -126,30 +77,99 @@
 
     function proceedAfterAuth() {
         const savedSheetId = localStorage.getItem("user_spreadsheet_id");
+
         if (savedSheetId) {
-            initCalendarApp();
+            showStatus(`🎉 おかえりなさい！<br>以前作成したスプレッドシート（ID: ${savedSheetId}）に接続しました。`);
+            console.log("既存のシートを使用します。ID:", savedSheetId);
         } else {
             createAutomatedSpreadsheet();
         }
     }
 
-    function initCalendarApp() {
-        document.getElementById("setupScreen").style.display = "none";
-        const app = document.getElementById("mainApp");
-        app.style.display = "flex"; 
-        generateMayCalendar();
+    function createAutomatedSpreadsheet() {
+        showStatus("<div class='loading-spinner'></div> カレンダー専用のシートを新規作成中...");
+
+        // 1. スプレッドシートを新規作成
+        fetch("https://sheets.googleapis.com/v4/spreadsheets", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${accessToken}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                properties: {
+                    title: "マイ-スマートカレンダー-データベース"
+                }
+            })
+        })
+        .then(response => response.json())
+        .then(spreadsheet => {
+            if (spreadsheet.error) {
+                showError("シートの作成に失敗しました: " + spreadsheet.error.message);
+                return;
+            }
+
+            const spreadsheetId = spreadsheet.spreadsheetId;
+            const spreadsheetUrl = spreadsheet.spreadsheetUrl;
+
+            showStatus("<div class='loading-spinner'></div> シート作成成功！初期項目（座標列つき）を入力中...");
+          showStatus("<div class='loading-spinner'></div> シート作成成功！初期項目（座標列つき）を入力中...");
+
+            // 2. 正しいURLとデータ構造でヘッダー(x, y含む)を書き込み
+            const range = encodeURIComponent("Sheet1!A1");
+            // 【確定解決版】シート名（Sheet1など）に依存せず、1枚目のシートのA1マスを起点にする指定
+            const range = encodeURIComponent("A1");
+            
+            fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}:append?valueInputOption=USER_ENTERED`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${accessToken}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    majorDimension: "ROWS",
+                    values: [["id", "date", "title", "description", "x", "y"]]
+                })
+            })
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(err => { throw new Error(err.error.message); });
+                }
+                return res.json();
+            })
+            .then(data => {
+                // すべて完了したらローカルストレージに保存
+                // すべての書き込みが完全に終わってから、最後にIDとURLをローカルに保存する！
+                localStorage.setItem("user_spreadsheet_id", spreadsheetId);
+                localStorage.setItem("user_spreadsheet_url", spreadsheetUrl);
+
+                showStatus(`🎉 初期設定がすべて完了しました！<br><br>Googleドライブに「マイ-スマートカレンダー-データベース」が作られ、座標データ（x, y）の準備も完了しました！`);
+                console.log("作成されたシートのURL:", spreadsheetUrl);
+            })
+            .catch(err => {
+                showError("ヘッダー入力エラー: " + err.message);
+            });
+        })
+        .catch(err => {
+            showError("シート作成通信エラー: " + err.toString());
+        });
     }
 
-    function generateMayCalendar() {
-        const grid = document.getElementById("calendarGrid");
-        
-        // 2026年5月1日は金曜日
-        for (let i = 0; i < 5; i++) {
-            const emptyCell = document.createElement("div");
-            emptyCell.className = "calendar-day empty";
-            grid.appendChild(emptyCell);
-        }
+    function showStatus(msg) {
+        const area = document.getElementById("statusArea");
+        const errArea = document.getElementById("errorArea");
+        errArea.style.display = "none";
+        area.style.display = "block";
+        area.innerHTML = msg;
+    }
 
-        for (let day = 1; day <= 31; day++) {
-            const dayCell = document.createElement("div");
-            dayCell.className = "calendar-day";
+    function showError(msg) {
+        const area = document.getElementById("errorArea");
+        const statusArea = document.getElementById("statusArea");
+        statusArea.style.display = "none";
+        area.style.display = "block";
+        area.innerText = msg;
+    }
+</script>
+</body>
+</html>
