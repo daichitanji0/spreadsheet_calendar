@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>GAS Calendar App</title>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <style>
+        body { margin: 40px; font-family: sans-serif; }
+        #calendar { max-width: 900px; margin: 0 auto; }
+        .setup-btn { display: block; margin: 20px auto; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <h2 style="text-align: center;">マイ・カレンダー（GAS連携テスト）</h2>
+    <button class="setup-btn" onclick="startSetup()">初期セットアップ（ドライブにシート作成）</button>
+    <div id="calendar"></div>
+
+    <script>
+        // 【重要】ここにステップ2でメモした「GASのウェブアプリURL」を貼り付けてください！
+        const GAS_URL = "ここにあなたのGASのURLを貼り付ける";
+
+        // 画面が読み込まれたら、カレンダーを起動する
+        document.addEventListener('DOMContentLoaded', function() {
+            var calendarEl = document.getElementById('calendar');
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'ja'
+            });
+            calendar.render();
+        });
+
+        // ボタンを押したときにGASを呼び出す関数
+        function startSetup() {
+            if(GAS_URL.includes("ここにあなたのGAS")){
+                alert("コード内のGAS_URLをあなたのURLに書き換えてください！");
+                return;
+            }
+            alert("Googleへの接続を開始します。次の画面で警告が出ますが、許可して進んでください。");
+            
+            // GASのdoGet(e)を呼び出して、利用者のドライブにスプレッドシートを作らせる
+            fetch(GAS_URL)
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                alert("大成功！利用者のGoogleドライブにスプレッドシートが作られました！\nURL: " + data.spreadsheetUrl);
+            })
+            .catch(error => {
+                console.error("エラーが発生しました:", error);
+                alert("通信エラーが発生しました。GASの公開設定やCORSの設定を確認してください。");
+            });
+        }
+    </script>
+</body>
+</html>
