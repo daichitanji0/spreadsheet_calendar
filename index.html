@@ -114,7 +114,7 @@
             showStatus("<div class='loading-spinner'></div> シートの作成成功！初期項目(ヘッダー)を入力中...");
 
             // 作ったシートの1行目に「id, date, title, description」を自動入力する
-            fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1!A1:D1:append?valueInputOption=USER_ENTERED`, {
+            fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1!A1:D1/append?valueInputOption=USER_ENTERED`, {
                 method: "POST",
                 headers: {
                     "Authorization": `Bearer ${accessToken}`,
