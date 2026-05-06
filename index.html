@@ -2,47 +2,92 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>GAS Calendar App</title>
+    <title>安心スプレッドシート カレンダー</title>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <style>
-        body { margin: 40px; font-family: sans-serif; }
-        #calendar { max-width: 900px; margin: 0 auto; }
-        .setup-btn { display: block; margin: 20px auto; padding: 10px 20px; font-size: 16px; cursor: pointer; background-color: #4CAF50; color: white; border: none; border-radius: 4px; }
-        .setup-btn:hover { background-color: #45a049; }
+        body { margin: 40px; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f5f7fb; color: #333; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h2 { text-align: center; margin-bottom: 30px; color: #2c3e50; }
+        .setup-area { background: #f8f9fa; padding: 20px; border-radius: 6px; margin-bottom: 30px; border: 1px solid #e9ecef; }
+        .setup-area p { margin-top: 0; font-size: 14px; color: #666; }
+        .input-group { display: flex; gap: 10px; }
+        input[type="text"] { flex: 1; padding: 10px; font-size: 14px; border: 1px solid #ced4da; border-radius: 4px; }
+        .btn { padding: 10px 20px; font-size: 14px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn:hover { background-color: #0056b3; }
+        #calendar { margin-top: 20px; }
     </style>
 </head>
 <body>
 
-    <h2 style="text-align: center;">マイ・カレンダー（GAS連携テスト）</h2>
-    <button class="setup-btn" onclick="startSetup()">Googleアカウントでログインして初期セットアップ</button>
+<div class="container">
+    <h2>マイ・スマートカレンダー</h2>
+
+    <div class="setup-area">
+        <p><strong>【初期設定】</strong> Googleドライブで新規スプレッドシート（空のままでOK）を作成し、そのURLを以下に貼り付けて同期してください。</p>
+        <div class="input-group">
+            <input type="text" id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
+            <button class="btn" onclick="syncCalendar()">カレンダーを同期</button>
+        </div>
+    </div>
+
     <div id="calendar"></div>
+</div>
 
-    <script>
-        // 【最重要】ここにあなたの最新の「GASのウェブアプリURL」を貼り付けてください！
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbzQCR8Oe8I0SK0f13vkaBr4ozv7FBSxjnBJqN_IfSx4wh2Mho1dY3Ow85GA1zmgGCic/exec";
+<script>
+    // 【重要】ここにステップ1でメモした、新しい「GASのウェブアプリURL」を貼り付けてください！
+    const GAS_URL = "ここにあなたの最新のGASのURLを貼り付ける";
 
-        // 画面が読み込まれたら、カレンダーを起動する
-        document.addEventListener('DOMContentLoaded', function() {
-            var calendarEl = document.getElementById('calendar');
-            var calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                locale: 'ja'
-            });
-            calendar.render();
-        });
-
-        // ボタンを押したときに動作する関数
-        function startSetup() {
-            if(GAS_URL.includes("ここにあなたのGAS")){
-                alert("コード内のGAS_URLをあなたのURLに書き換えてください！");
-                return;
-            }
-            
-            // 【修正の肝】裏側で通信するのではなく、新しいウィンドウで直接GASのURLを開く！
-            // これにより、Google公式のログイン・権限承認画面が確実に立ち上がります。
-            window.open(GAS_URL, "GoogleLogin", "width=600,height=600,menubar=no,toolbar=no");
+    // 画面が読み込まれたらカレンダーを起動
+    document.addEventListener('DOMContentLoaded', function() {
+        // 過去に保存したURLがあれば自動入力する
+        const savedUrl = localStorage.getItem('saved_sheet_url');
+        if (savedUrl) {
+            document.getElementById('sheetUrl').value = savedUrl;
         }
-    </script>
+
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            locale: 'ja'
+        });
+        calendar.render();
+    });
+
+    // 同期ボタンを押したときの処理
+    function syncCalendar() {
+        const urlInput = document.getElementById('sheetUrl').value.trim();
+        
+        if (!urlInput) {
+            alert("スプレッドシートのURLを入力してください。");
+            return;
+        }
+        if (GAS_URL.includes("ここにあなたの最新のGAS")){
+            alert("コード内のGAS_URLを書き換えてください！");
+            return;
+        }
+
+        // ユーザーに安心してもらうための普通のポップアップ
+        alert("Googleと接続し、シートの初期設定（id, date, title等の自動入力）を行います。");
+
+        // GASへ通信（URLをパラメーターとして乗せる）
+        // window.openではなく、fetch（裏側通信）で一瞬で終わらせます！
+        fetch(`${GAS_URL}?url=${encodeURIComponent(urlInput)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                // 次回から入力しなくていいように、ブラウザにURLを記憶させる
+                localStorage.setItem('saved_sheet_url', urlInput);
+                alert("同期大成功！スプレッドシートに項目が自動入力されました。カレンダーをご利用いただけます。");
+            } else {
+                alert("エラーが発生しました:\n" + data.message);
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            alert("通信エラーが発生しました。GASの公開設定を確認してください。");
+        });
+    }
+</script>
 </body>
 </html>
 </html>
