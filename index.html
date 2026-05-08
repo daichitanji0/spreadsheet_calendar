@@ -12,12 +12,10 @@
         .btn { padding: 12px 24px; font-size: 16px; background-color: #4285F4; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: background 0.2s; }
         .btn:hover { background-color: #357ae8; }
         .status-card { background: #e8f0fe; color: #1967d2; padding: 15px; border-radius: 6px; margin-top: 20px; font-weight: bold; display: none; }
-        
         #mainApp { display: none; height: 100vh; box-sizing: border-box; padding: 20px; gap: 20px; }
         .task-window { width: 33.33%; background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 20px; display: flex; flex-direction: column; box-sizing: border-box; }
         .task-list { flex: 1; overflow-y: auto; padding: 10px 0; }
         .task-item { background: #e8f0fe; color: #1967d2; padding: 12px; margin-bottom: 10px; border-radius: 6px; font-weight: bold; cursor: grab; border-left: 5px solid #4285F4; }
-        
         .calendar-window { width: 66.66%; background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; flex: 1; }
         .calendar-day { background: #fdfefe; border: 1px solid #eef2f5; border-radius: 6px; padding: 8px; min-height: 90px; position: relative; }
@@ -40,19 +38,18 @@
     <div class="task-window">
         <div style="display:flex; justify-content: space-between; align-items: center;">
             <h3>未配置のタスク (+)</h3>
-            <button onclick="handleLogout()" style="cursor:pointer; font-size: 10px; background:none; border:1px solid #ccc; border-radius:4px;">ログアウト</button>
+            <button onclick="handleLogout()" style="cursor:pointer; font-size: 10px;">ログアウト</button>
         </div>
         <p style="font-size: 12px; color: #888; cursor:pointer;" onclick="addNewTaskPrompt(event)">クリックして追加 / ドラッグして配置</p>
         <div class="task-list" id="taskList"></div>
     </div>
     <div class="calendar-window">
-        <div style="font-size:24px; font-weight:bold; text-align:center; margin-bottom:20px;">2026年 5月</div>
+        <div id="calendarTitle" style="font-size:24px; font-weight:bold; text-align:center; margin-bottom:20px;">2026年 5月</div>
         <div class="calendar-grid" id="calendarGrid"></div>
     </div>
 </div>
 
 <script>
-    // --- Firebase設定 (画像から抽出済み) ---
     const firebaseConfig = {
         apiKey: "AIzaSyCbyXSgnzkOGU8269J9f8axIkbC34vb_bQ",
         authDomain: "my-calendar-app-495505.firebaseapp.com",
@@ -68,33 +65,27 @@
     provider.addScope('https://www.googleapis.com/auth/spreadsheets');
     provider.addScope('https://www.googleapis.com/auth/drive.metadata.readonly');
 
-    let accessToken = null;
+    let accessToken = localStorage.getItem("google_api_token");
     let spreadsheetId = null;
     const DB_FILE_NAME = "boccale-database";
 
-    // ログイン状態の監視
+    // ログイン状態の変更を監視
     firebase.auth().onAuthStateChanged(async (user) => {
         if (user) {
-            showStatus("ログインを確認しました。同期中...");
+            showStatus("認証情報を確認中...");
             
-            try {
-                // リダイレクト後の結果からアクセストークンを抽出
-                const result = await firebase.auth().getRedirectResult();
-                if (result && result.credential) {
-                    accessToken = result.credential.accessToken;
-                    localStorage.setItem("google_api_token", accessToken);
-                } else {
-                    accessToken = localStorage.getItem("google_api_token");
-                }
+            // リダイレクト戻りかチェック
+            const result = await firebase.auth().getRedirectResult();
+            if (result && result.credential) {
+                accessToken = result.credential.accessToken;
+                localStorage.setItem("google_api_token", accessToken);
+            }
 
-                if (!accessToken) {
-                    handleLogin(); // トークンがなければ再取得へ
-                } else {
-                    searchDriveForSpreadsheet();
-                }
-            } catch (error) {
-                console.error("Auth Error:", error);
-                showStatus("認証エラーが発生しました。再ログインしてください。");
+            if (accessToken) {
+                searchDriveForSpreadsheet();
+            } else {
+                // トークンがない場合は再取得（リダイレクト）
+                handleLogin();
             }
         } else {
             document.getElementById("setupScreen").style.display = "block";
@@ -114,24 +105,29 @@
     }
 
     async function searchDriveForSpreadsheet() {
+        showStatus("ドライブをスキャン中...");
         const q = `name = '${DB_FILE_NAME}' and trashed = false and mimeType = 'application/vnd.google-apps.spreadsheet'`;
         const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id, name)`;
 
         try {
             const res = await fetch(url, { headers: { "Authorization": `Bearer ${accessToken}` } });
+            if (res.status === 401) { // トークン切れ
+                handleLogin();
+                return;
+            }
             const data = await res.json();
             
             if (data.files && data.files.length > 0) {
                 spreadsheetId = data.files[0].id;
                 initCalendarApp();
             } else {
-                if (confirm("専用の保存用スプレッドシートが見つかりません。新規作成しますか？")) {
+                if (confirm("専用スプレッドシートを新規作成しますか？")) {
                     createNewSpreadsheet();
                 }
             }
         } catch (e) {
             console.error(e);
-            showStatus("ドライブの検索に失敗しました。APIが有効か確認してください。");
+            showStatus("エラーが発生しました。再読み込みしてください。");
         }
     }
 
@@ -156,7 +152,6 @@
     function generateCalendar() {
         const grid = document.getElementById("calendarGrid");
         grid.innerHTML = "<div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>";
-        // 2026年5月 (1日が金曜日)
         for (let i = 0; i < 5; i++) grid.appendChild(createCell(true));
         for (let d = 1; d <= 31; d++) grid.appendChild(createCell(false, d));
     }
@@ -202,9 +197,7 @@
             if (data.values) {
                 data.values.forEach(r => { if(r[1] && r[2]) renderPlacedTask(`cell-${r[1]}`, r[2]); });
             }
-        } catch (e) {
-            console.error("読み込み失敗", e);
-        }
+        } catch (e) { console.error(e); }
     }
 
     function saveTask(date, title) {
@@ -216,7 +209,7 @@
     }
 
     function addNewTaskPrompt(e) {
-        const t = prompt("タスクを入力してください:");
+        const t = prompt("タスクを入力:");
         if (!t) return;
         const el = document.createElement("div");
         el.className = "task-item";
