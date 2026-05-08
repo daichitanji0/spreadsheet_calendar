@@ -151,6 +151,18 @@
             });
             const data = await res.json();
             spreadsheetId = data.spreadsheetId;
+            
+            // 2. 作成したシートの1行目にヘッダーを書き込む
+            await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1!A1:C1?valueInputOption=USER_ENTERED`, {
+                method: "PUT", // 既存の空セルを上書きするのでPUT
+                headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    values: [["id", "date", "title"]] // ヘッダー行
+                })
+            });
+
+            console.log("スプレッドシートとヘッダーの作成が完了しました");
+            
             initCalendarApp();
         } catch (e) {
             console.error("Create Sheet Error:", e);
