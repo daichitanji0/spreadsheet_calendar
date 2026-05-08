@@ -61,6 +61,7 @@
     };
 
     firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
     const provider = new firebase.auth.GoogleAuthProvider();
     provider.addScope('https://www.googleapis.com/auth/spreadsheets');
     provider.addScope('https://www.googleapis.com/auth/drive.metadata.readonly');
@@ -69,44 +70,51 @@
     let spreadsheetId = null;
     const DB_FILE_NAME = "boccale-database";
 
-    // ログイン状態の監視
-    firebase.auth().onAuthStateChanged(async (user) => {
-        if (user) {
-            console.log("Firebase Auth: ログイン済み");
-            showStatus("認証情報を確認中...");
-
-            try {
-                // リダイレクト後の結果を取得
-                const result = await firebase.auth().getRedirectResult();
-                if (result && result.credential) {
-                    console.log("トークンを取得しました（リダイレクト経由）");
-                    accessToken = result.credential.accessToken;
-                    localStorage.setItem("google_api_token", accessToken);
-                }
-            } catch (error) {
-                console.error("リダイレクトエラー:", error);
+    // アプリ起動時の初期処理
+    async function init() {
+        console.log("App: 初期化開始");
+        
+        try {
+            // まずリダイレクト結果を確認（これが最優先）
+            const result = await auth.getRedirectResult();
+            if (result && result.credential) {
+                console.log("Firebase: リダイレクトから復帰、トークン取得成功");
+                accessToken = result.credential.accessToken;
+                localStorage.setItem("google_api_token", accessToken);
             }
-
-            // トークンがない場合は再ログイン、あれば検索へ
-            if (accessToken) {
-                searchDriveForSpreadsheet();
-            } else {
-                console.log("トークンが見つからないため再ログインします");
-                handleLogin();
-            }
-        } else {
-            console.log("Firebase Auth: 未ログイン");
-            document.getElementById("setupScreen").style.display = "block";
-            document.getElementById("mainApp").style.display = "none";
+        } catch (error) {
+            console.error("Firebase: リダイレクトエラー", error);
         }
-    });
+
+        // ログイン状態の監視を開始
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                console.log("Firebase Auth: ログイン済み -", user.email);
+                showStatus("認証情報を確認中...");
+                
+                // トークンがあるか確認
+                accessToken = localStorage.getItem("google_api_token");
+                if (accessToken) {
+                    searchDriveForSpreadsheet();
+                } else {
+                    console.log("Firebase Auth: トークンがないため再取得を試みます");
+                    handleLogin();
+                }
+            } else {
+                console.log("Firebase Auth: 未ログイン状態");
+                document.getElementById("setupScreen").style.display = "block";
+                document.getElementById("mainApp").style.display = "none";
+            }
+        });
+    }
 
     function handleLogin() {
-        firebase.auth().signInWithRedirect(provider);
+        console.log("Login: Googleリダイレクト開始");
+        auth.signInWithRedirect(provider);
     }
 
     function handleLogout() {
-        firebase.auth().signOut().then(() => {
+        auth.signOut().then(() => {
             localStorage.clear();
             location.reload();
         });
@@ -122,28 +130,25 @@
             const res = await fetch(url, { headers: { "Authorization": `Bearer ${accessToken}` } });
             
             if (res.status === 401) {
-                console.warn("トークンが無効です。再ログインします。");
-                localStorage.removeItem("google_api_token");
+                console.warn("API: トークンが無効です。再ログインします。");
                 handleLogin();
                 return;
             }
 
             const data = await res.json();
-            console.log("Drive API レスポンス:", data);
-
             if (data.files && data.files.length > 0) {
                 spreadsheetId = data.files[0].id;
-                console.log("シートを発見:", spreadsheetId);
+                console.log("API: シート発見 ID:", spreadsheetId);
                 initCalendarApp();
             } else {
-                console.log("シートが見つかりません。新規作成を確認します。");
+                console.log("API: シートが見つかりません。作成ダイアログを表示します。");
                 if (confirm("専用スプレッドシートが見つかりません。作成しますか？")) {
                     createNewSpreadsheet();
                 }
             }
         } catch (e) {
-            console.error("検索エラー:", e);
-            showStatus("エラーが発生しました。コンソールを確認してください。");
+            console.error("API: 通信エラー", e);
+            showStatus("エラーが発生しました。");
         }
     }
 
@@ -157,15 +162,15 @@
             });
             const data = await res.json();
             spreadsheetId = data.spreadsheetId;
-            console.log("シート作成完了:", spreadsheetId);
+            console.log("Sheets API: 作成完了 ID:", spreadsheetId);
             initCalendarApp();
         } catch (e) {
-            console.error("作成エラー:", e);
+            console.error("Sheets API: 作成エラー", e);
         }
     }
 
     function initCalendarApp() {
-        console.log("App: カレンダーを初期化中...");
+        console.log("App: カレンダー描画");
         document.getElementById("setupScreen").style.display = "none";
         document.getElementById("mainApp").style.display = "flex";
         generateCalendar();
@@ -175,7 +180,6 @@
     function generateCalendar() {
         const grid = document.getElementById("calendarGrid");
         grid.innerHTML = "<div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>";
-        // 2026年5月1日は金曜日なので、4日分空ける（月曜始まりなら調整が必要ですが、ここでは日曜始まり想定）
         for (let i = 0; i < 5; i++) grid.appendChild(createCell(true));
         for (let d = 1; d <= 31; d++) grid.appendChild(createCell(false, d));
     }
@@ -222,7 +226,7 @@
             if (data.values) {
                 data.values.forEach(r => { if(r[1] && r[2]) renderPlacedTask(`cell-${r[1]}`, r[2]); });
             }
-        } catch (e) { console.error("データ取得エラー:", e); }
+        } catch (e) { console.error(e); }
     }
 
     function saveTask(date, title) {
@@ -253,6 +257,9 @@
         s.style.display = "block";
         s.innerText = m;
     }
+
+    // 実行
+    init();
 </script>
 </body>
 </html>
