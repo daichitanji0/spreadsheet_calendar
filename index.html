@@ -69,25 +69,33 @@
     let spreadsheetId = null;
     const DB_FILE_NAME = "boccale-database";
 
-    // ログイン状態の変更を監視
+    // ログイン状態の監視
     firebase.auth().onAuthStateChanged(async (user) => {
         if (user) {
+            console.log("Firebase Auth: ログイン済み");
             showStatus("認証情報を確認中...");
-            
-            // リダイレクト戻りかチェック
-            const result = await firebase.auth().getRedirectResult();
-            if (result && result.credential) {
-                accessToken = result.credential.accessToken;
-                localStorage.setItem("google_api_token", accessToken);
+
+            try {
+                // リダイレクト後の結果を取得
+                const result = await firebase.auth().getRedirectResult();
+                if (result && result.credential) {
+                    console.log("トークンを取得しました（リダイレクト経由）");
+                    accessToken = result.credential.accessToken;
+                    localStorage.setItem("google_api_token", accessToken);
+                }
+            } catch (error) {
+                console.error("リダイレクトエラー:", error);
             }
 
+            // トークンがない場合は再ログイン、あれば検索へ
             if (accessToken) {
                 searchDriveForSpreadsheet();
             } else {
-                // トークンがない場合は再取得（リダイレクト）
+                console.log("トークンが見つからないため再ログインします");
                 handleLogin();
             }
         } else {
+            console.log("Firebase Auth: 未ログイン");
             document.getElementById("setupScreen").style.display = "block";
             document.getElementById("mainApp").style.display = "none";
         }
@@ -105,44 +113,59 @@
     }
 
     async function searchDriveForSpreadsheet() {
+        console.log("Drive API: スキャン開始...");
         showStatus("ドライブをスキャン中...");
         const q = `name = '${DB_FILE_NAME}' and trashed = false and mimeType = 'application/vnd.google-apps.spreadsheet'`;
         const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id, name)`;
 
         try {
             const res = await fetch(url, { headers: { "Authorization": `Bearer ${accessToken}` } });
-            if (res.status === 401) { // トークン切れ
+            
+            if (res.status === 401) {
+                console.warn("トークンが無効です。再ログインします。");
+                localStorage.removeItem("google_api_token");
                 handleLogin();
                 return;
             }
+
             const data = await res.json();
-            
+            console.log("Drive API レスポンス:", data);
+
             if (data.files && data.files.length > 0) {
                 spreadsheetId = data.files[0].id;
+                console.log("シートを発見:", spreadsheetId);
                 initCalendarApp();
             } else {
-                if (confirm("専用スプレッドシートを新規作成しますか？")) {
+                console.log("シートが見つかりません。新規作成を確認します。");
+                if (confirm("専用スプレッドシートが見つかりません。作成しますか？")) {
                     createNewSpreadsheet();
                 }
             }
         } catch (e) {
-            console.error(e);
-            showStatus("エラーが発生しました。再読み込みしてください。");
+            console.error("検索エラー:", e);
+            showStatus("エラーが発生しました。コンソールを確認してください。");
         }
     }
 
     async function createNewSpreadsheet() {
-        const res = await fetch("https://sheets.googleapis.com/v4/spreadsheets", {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ properties: { title: DB_FILE_NAME } })
-        });
-        const data = await res.json();
-        spreadsheetId = data.spreadsheetId;
-        initCalendarApp();
+        console.log("Sheets API: 新規作成中...");
+        try {
+            const res = await fetch("https://sheets.googleapis.com/v4/spreadsheets", {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ properties: { title: DB_FILE_NAME } })
+            });
+            const data = await res.json();
+            spreadsheetId = data.spreadsheetId;
+            console.log("シート作成完了:", spreadsheetId);
+            initCalendarApp();
+        } catch (e) {
+            console.error("作成エラー:", e);
+        }
     }
 
     function initCalendarApp() {
+        console.log("App: カレンダーを初期化中...");
         document.getElementById("setupScreen").style.display = "none";
         document.getElementById("mainApp").style.display = "flex";
         generateCalendar();
@@ -152,6 +175,7 @@
     function generateCalendar() {
         const grid = document.getElementById("calendarGrid");
         grid.innerHTML = "<div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>";
+        // 2026年5月1日は金曜日なので、4日分空ける（月曜始まりなら調整が必要ですが、ここでは日曜始まり想定）
         for (let i = 0; i < 5; i++) grid.appendChild(createCell(true));
         for (let d = 1; d <= 31; d++) grid.appendChild(createCell(false, d));
     }
@@ -189,6 +213,7 @@
     }
 
     async function loadTasks() {
+        if (!spreadsheetId) return;
         try {
             const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A2:C100`, {
                 headers: { "Authorization": `Bearer ${accessToken}` }
@@ -197,7 +222,7 @@
             if (data.values) {
                 data.values.forEach(r => { if(r[1] && r[2]) renderPlacedTask(`cell-${r[1]}`, r[2]); });
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error("データ取得エラー:", e); }
     }
 
     function saveTask(date, title) {
