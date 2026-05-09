@@ -19,31 +19,19 @@
         .calendar-window { width: 66.66%; background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; flex: 1; }
         .calendar-day {
-            background: #fdfefe;
-            border: 1px solid #333; /* 枠線を少しはっきりさせています */
-            /* 形の調整：右上、右下、左下を丸くし、左上だけ尖らせる */
-            border-radius: 0 15px 8px 8px; 
-            padding: 8px;
+            background: #fff;
+            border: 1px solid #333; /* 枠線が不要なら消してもOK */
+            padding: 10px;
             min-height: 100px;
             position: relative;
-            /* 左上の「注ぎ口」を表現するために少し隙間をあける */
-            margin: 2px;
-            transition: all 0.2s;}
-
-/* 注ぎ口の部分を疑似要素で作る */
-        .calendar-day::before {
-            content: "";
-            position: absolute;
-            top: -1px;
-            left: -5px;
-            width: 10px;
-            height: 10px;
-            background: inherit;
-            border-left: 1px solid #333;
-            border-top: 1px solid #333;
-            /* 少し傾けて注ぎ口っぽくする */
-            transform: skewX(-20deg);
-            border-top-left-radius: 2px;}
+            /* 作成したSVGをマスクとして適用 */
+            -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 0 9 10"><path d="M -2 0 L 6 0 Q 7 0 7 1 L 7 9 Q 7 10 6 10 L 0 10 Q -1 10 -1 9 L -1 1 Q -1 0 -2 0" fill="black"/></svg>');
+            mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 0 9 10"><path d="M -2 0 L 6 0 Q 7 0 7 1 L 7 9 Q 7 10 6 10 L 0 10 Q -1 10 -1 9 L -1 1 Q -1 0 -2 0" fill="black"/></svg>');
+            /* マスクのサイズ調整 */
+            -webkit-mask-size: 100% 100%;
+            mask-size: 100% 100%;
+            -webkit-mask-repeat: no-repeat;
+            mask-repeat: no-repeat;}
 
 /* ドラッグした時の反応も形に合わせる */
         .calendar-day.drag-over {background: #e8f0fe; border: 2px dashed #4285F4; transform: scale(1.02);}
