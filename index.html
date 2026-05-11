@@ -9,40 +9,31 @@
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Nunito:wght@600;700&display=swap" rel="stylesheet">
     
     <style>
+        :root {
+            /* SVGの比率に合わせてボックスの比率を定義 */
+            --beaker-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 0 9 10"><path d="M -2 0 L 6 0 Q 7 0 7 1 L 7 9 Q 7 10 6 10 L 0 10 Q -1 10 -1 9 L -1 1 Q -1 0 -2 0" fill="black"/></svg>');
+        }
+
         body { 
             margin: 0; 
             padding: 0; 
             font-family: 'Nunito', sans-serif; 
             background-color: #2b2b2b; 
-            color: #333; 
             height: 100vh; 
-            width: 100vw;
             display: flex;
             justify-content: center;
             align-items: center;
             overflow: hidden; 
         }
 
-        /* セットアップ画面 */
-        .container { 
-            max-width: 500px; 
-            background: white; 
-            padding: 40px; 
-            border-radius: 20px; 
-            text-align: center; 
-        }
-
-        /* メインアプリ本体 */
         #mainApp { 
-            display: none; 
             background-color: #c9e9ea; 
-            padding: 15px; 
+            padding: 20px; 
             border-radius: 25px; 
-            gap: 15px; 
-            width: 98vw;
-            height: 94vh; 
+            gap: 20px; 
+            width: 96vw;
+            height: 90vh; 
             box-sizing: border-box;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
             display: none; /* JSでflexに切り替え */
             flex-direction: row;
         }
@@ -51,62 +42,60 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            height: 100%;
+            min-width: 0; /* flex崩れ防止 */
         }
 
         .calendar-header {
             display: flex;
-            align-items: flex-end;
+            align-items: center;
             margin-bottom: 10px;
-            padding: 8px 20px;
+            padding: 0 15px;
             background-color: #f0fdfd;
-            border-radius: 15px;
-            height: 70px;
-            box-sizing: border-box;
-            /* ヘッダーにも同じ切り欠きデザインを適用 */
-            -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 0 9 10"><path d="M -2 0 L 6 0 Q 7 0 7 1 L 7 9 Q 7 10 6 10 L 0 10 Q -1 10 -1 9 L -1 1 Q -1 0 -2 0" fill="black"/></svg>');
-            mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 0 9 10"><path d="M -2 0 L 6 0 Q 7 0 7 1 L 7 9 Q 7 10 6 10 L 0 10 Q -1 10 -1 9 L -1 1 Q -1 0 -2 0" fill="black"/></svg>');
+            height: 60px;
+            -webkit-mask-image: var(--beaker-mask);
+            mask-image: var(--beaker-mask);
             -webkit-mask-size: 100% 100%;
             mask-size: 100% 100%;
         }
 
-        .month-number { font-size: 48px; font-weight: 700; line-height: 1; margin-right: 20px; }
+        .month-number { font-size: 40px; font-weight: 700; margin-right: 20px; font-family: 'Caveat'; }
 
         .weekdays {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             flex: 1;
             font-family: 'Caveat', cursive;
-            font-size: 24px;
+            font-size: 20px;
             text-align: center;
         }
 
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            grid-template-rows: repeat(6, 1fr);
-            gap: 8px;
+            gap: 10px;
             flex: 1;
+            align-content: start; /* 上詰めで配置 */
         }
 
-        /* ★ 指定されたSVGパスをマスクに適用 ★ */
+        /* ★ バグ修正の核心部分 ★ */
         .calendar-day {
             background: white;
-            padding: 5px 8px;
+            padding: 8px;
             position: relative;
             font-family: 'Caveat', cursive;
             font-size: 18px;
-            font-weight: 700;
-            overflow: hidden;
             
-            /* SVGマスク設定 */
-            -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 0 9 10"><path d="M -2 0 L 6 0 Q 7 0 7 1 L 7 9 Q 7 10 6 10 L 0 10 Q -1 10 -1 9 L -1 1 Q -1 0 -2 0" fill="black"/></svg>');
-            mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 0 9 10"><path d="M -2 0 L 6 0 Q 7 0 7 1 L 7 9 Q 7 10 6 10 L 0 10 Q -1 10 -1 9 L -1 1 Q -1 0 -2 0" fill="black"/></svg>');
+            /* 縦横比をSVGの比率(9:10)に固定 */
+            aspect-ratio: 9 / 10; 
+            width: 100%; /* グリッド幅いっぱいに広げる */
+            
+            /* マスク設定：形を維持してボックスにフィットさせる */
+            -webkit-mask-image: var(--beaker-mask);
+            mask-image: var(--beaker-mask);
             -webkit-mask-size: 100% 100%;
             mask-size: 100% 100%;
+            -webkit-mask-repeat: no-repeat;
             mask-repeat: no-repeat;
-            
-            transition: transform 0.2s;
         }
 
         .day-prev { background-color: #a8ffff; color: #72d6d6; }
@@ -116,68 +105,46 @@
         .color-sat { color: #9c65ff !important; }
 
         .task-window { 
-            width: 260px; 
+            width: 280px; 
             background: #ffffff; 
-            border-radius: 20px; 
             padding: 20px; 
             display: flex; 
             flex-direction: column;
             height: 100%;
             box-sizing: border-box;
-            /* サイドバーも統一感のために同じ形状のマスクを適用 */
-            -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 0 9 10"><path d="M -2 0 L 6 0 Q 7 0 7 1 L 7 9 Q 7 10 6 10 L 0 10 Q -1 10 -1 9 L -1 1 Q -1 0 -2 0" fill="black"/></svg>');
-            mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 0 9 10"><path d="M -2 0 L 6 0 Q 7 0 7 1 L 7 9 Q 7 10 6 10 L 0 10 Q -1 10 -1 9 L -1 1 Q -1 0 -2 0" fill="black"/></svg>');
+            -webkit-mask-image: var(--beaker-mask);
+            mask-image: var(--beaker-mask);
             -webkit-mask-size: 100% 100%;
             mask-size: 100% 100%;
         }
 
-        .task-list { 
-            flex: 1; 
-            overflow-y: auto; 
-            margin-top: 10px;
-        }
+        .task-list { flex: 1; overflow-y: auto; margin-top: 10px; }
 
         .task-item { 
-            background: #f0fdfd; 
-            padding: 10px; 
-            margin-bottom: 8px; 
-            border-radius: 10px; 
-            font-size: 14px;
-            font-weight: bold; 
-            cursor: grab; 
-            border-left: 5px solid #4285F4;
+            background: #f0fdfd; padding: 10px; margin-bottom: 8px; border-radius: 10px; 
+            font-size: 14px; font-weight: bold; cursor: grab; border-left: 5px solid #4285F4;
         }
 
         .placed-task { 
-            background: #4285F4; 
-            color: white; 
-            padding: 2px 5px; 
-            border-radius: 4px; 
-            font-size: 10px; 
-            margin-top: 2px; 
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            background: #4285F4; color: white; padding: 2px 5px; border-radius: 4px; 
+            font-size: 10px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis;
             font-family: 'Nunito', sans-serif;
         }
 
         .add-task-btn {
-            font-size: 13px; color: #888; cursor:pointer; 
-            border: 2px dashed #eee; padding: 10px; border-radius: 10px; 
-            text-align: center; margin-top: 5px;
+            font-size: 13px; color: #888; cursor:pointer; border: 2px dashed #eee; 
+            padding: 10px; border-radius: 10px; text-align: center;
         }
 
-        .btn { padding: 12px 24px; background-color: #4285F4; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        #setupScreen { background: white; padding: 40px; border-radius: 20px; text-align: center; }
+        .btn { padding: 12px 24px; background-color: #4285F4; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div id="setupScreen" class="container">
-    <h1 style="color: #444; font-size: 40px; margin-bottom: 10px; font-family: 'Caveat', cursive;">boccale</h1>
-    <p>日々の余白を、安心に変えるカレンダー。</p>
-    <button id="authBtn" class="btn" onclick="handleLogin()">Google でログイン</button>
-    <br><br>
-    <button style="background:#6c757d" class="btn" onclick="startGuestMode()">アカウント無しでお試し</button>
+<div id="setupScreen">
+    <h1 style="color: #444; font-size: 40px; font-family: 'Caveat';">boccale</h1>
+    <button class="btn" onclick="startGuestMode()">アカウント無しでお試し</button>
 </div>
 
 <div id="mainApp">
@@ -185,85 +152,21 @@
         <div class="calendar-header">
             <div class="month-number">5</div>
             <div class="weekdays">
-                <div class="color-sun">sun</div>
-                <div>mon</div>
-                <div>tue</div>
-                <div>wed</div>
-                <div>thu</div>
-                <div>fri</div>
-                <div class="color-sat">sat</div>
+                <div class="color-sun">sun</div><div>mon</div><div>tue</div><div>wed</div><div>thu</div><div>fri</div><div class="color-sat">sat</div>
             </div>
         </div>
         <div class="calendar-grid" id="calendarGrid"></div>
     </div>
 
     <div class="task-window">
-        <div style="display:flex; justify-content: space-between; align-items: center;">
-            <h3 style="margin:0; font-size: 18px;">TODO</h3>
-            <button onclick="handleLogout()" style="cursor:pointer; font-size: 10px; border:none; background:none; color:#bbb;">Logout</button>
-        </div>
+        <h3 style="margin:0; font-size: 18px;">TODO</h3>
         <div class="add-task-btn" onclick="addNewTaskPrompt()">+ Add Task</div>
         <div class="task-list" id="taskList"></div>
     </div>
 </div>
 
 <script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyCbyXSgnzkOGU8269J9f8axIkbC34vb_bQ",
-        authDomain: "my-calendar-app-495505.firebaseapp.com",
-        projectId: "my-calendar-app-495505",
-        storageBucket: "my-calendar-app-495505.firebasestorage.app",
-        messagingSenderId: "228515909111",
-        appId: "1:228515909111:web:9c05cb566cd021f178f2f2",
-        measurementId: "G-M5R8P4D22G"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const provider = new firebase.auth.GoogleAuthProvider();
-    provider.addScope('https://www.googleapis.com/auth/spreadsheets');
-    provider.addScope('https://www.googleapis.com/auth/drive.metadata.readonly');
-
-    let accessToken = localStorage.getItem("google_api_token");
-    let spreadsheetId = null;
-    let isGuestMode = false;
-
-    function startGuestMode() { isGuestMode = true; initCalendarApp(); }
-
-    auth.onAuthStateChanged((user) => {
-        if (isGuestMode) return;
-        if (user) {
-            accessToken = localStorage.getItem("google_api_token");
-            if (accessToken) searchDriveForSpreadsheet();
-        } else {
-            document.getElementById("setupScreen").style.display = "block";
-            document.getElementById("mainApp").style.display = "none";
-        }
-    });
-
-    async function handleLogin() {
-        try {
-            const result = await auth.signInWithPopup(provider);
-            accessToken = result.credential.accessToken;
-            localStorage.setItem("google_api_token", accessToken);
-            searchDriveForSpreadsheet();
-        } catch (e) { alert(e.message); }
-    }
-
-    async function searchDriveForSpreadsheet() {
-        const q = `name = 'boccale-database' and trashed = false`;
-        const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}`;
-        const res = await fetch(url, { headers: { "Authorization": `Bearer ${accessToken}` } });
-        const data = await res.json();
-        if (data.files && data.files.length > 0) {
-            spreadsheetId = data.files[0].id;
-            initCalendarApp();
-        } else {
-            initCalendarApp(); 
-        }
-    }
-
-    function initCalendarApp() {
+    function startGuestMode() {
         document.getElementById("setupScreen").style.display = "none";
         document.getElementById("mainApp").style.display = "flex";
         generateCalendar();
@@ -272,6 +175,7 @@
     function generateCalendar() {
         const grid = document.getElementById("calendarGrid");
         grid.innerHTML = "";
+        // ダミーデータ生成（画像image_ba049c.pngの並びに準拠）
         const days = [
             {d: 26, type: "day-prev color-sun"}, {d: 27, type: "day-prev"}, {d: 28, type: "day-prev"}, {d: 29, type: "day-prev"}, {d: 30, type: "day-prev"},
             {d: 1, type: "day-current"}, {d: 2, type: "day-current color-sat"}, 
@@ -282,32 +186,20 @@
             {d: 31, type: "day-current color-sun"},
             {d: 1, type: "day-next"}, {d: 2, type: "day-next"}, {d: 3, type: "day-next"}, {d: 4, type: "day-next"}, {d: 5, type: "day-next"}, {d: 6, type: "day-next color-sat"}
         ];
-        days.forEach(dayInfo => grid.appendChild(createCell(dayInfo)));
-    }
-
-    function createCell(info) {
-        const div = document.createElement("div");
-        div.className = `calendar-day ${info.type}`;
-        div.innerHTML = `<span>${info.d}</span>`;
-        if (info.type.includes("day-current")) {
-            div.id = `cell-2026-05-${info.d.toString().padStart(2, '0')}`;
+        days.forEach(info => {
+            const div = document.createElement("div");
+            div.className = `calendar-day ${info.type}`;
+            div.innerHTML = `<span>${info.d}</span>`;
             div.ondragover = (e) => e.preventDefault();
             div.ondrop = (e) => {
                 const title = e.dataTransfer.getData("text");
-                renderPlacedTask(div.id, title);
+                const task = document.createElement("div");
+                task.className = "placed-task";
+                task.innerText = title;
+                div.appendChild(task);
             };
-        }
-        return div;
-    }
-
-    function renderPlacedTask(cellId, title) {
-        const cell = document.getElementById(cellId);
-        if (cell) {
-            const el = document.createElement("div");
-            el.className = "placed-task";
-            el.innerText = title;
-            cell.appendChild(el);
-        }
+            grid.appendChild(div);
+        });
     }
 
     function addNewTaskPrompt() {
@@ -320,8 +212,6 @@
         el.ondragstart = (ev) => ev.dataTransfer.setData("text", t);
         document.getElementById("taskList").appendChild(el);
     }
-
-    function handleLogout() { localStorage.clear(); location.reload(); }
 </script>
 </body>
 </html>
