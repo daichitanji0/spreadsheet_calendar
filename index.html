@@ -9,7 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Nunito:wght@600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* 全体：画面いっぱいに広げ、スクロールを禁止 */
         body { 
             margin: 0; 
             padding: 0; 
@@ -21,10 +20,10 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            overflow: hidden; /* 全体のスクロールを防止 */
+            overflow: hidden; 
         }
 
-        /* ログイン画面 */
+        /* セットアップ画面 */
         .container { 
             max-width: 500px; 
             background: white; 
@@ -33,7 +32,7 @@
             text-align: center; 
         }
 
-        /* メインアプリ：画面に収まるサイズに固定 */
+        /* メインアプリ本体 */
         #mainApp { 
             display: none; 
             background-color: #c9e9ea; 
@@ -41,13 +40,13 @@
             border-radius: 25px; 
             gap: 15px; 
             width: 98vw;
-            height: 94vh; /* 上下に少し余白 */
+            height: 94vh; 
             box-sizing: border-box;
             box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            display: none; /* JSでflexに切り替え */
             flex-direction: row;
         }
 
-        /* 左側：カレンダーエリア */
         .calendar-section {
             flex: 1;
             display: flex;
@@ -55,7 +54,6 @@
             height: 100%;
         }
 
-        /* カレンダーヘッダー */
         .calendar-header {
             display: flex;
             align-items: flex-end;
@@ -65,8 +63,11 @@
             border-radius: 15px;
             height: 70px;
             box-sizing: border-box;
-            -webkit-mask-image: radial-gradient(circle 20px at 0 0, transparent 20px, black 21px);
-            mask-image: radial-gradient(circle 20px at 0 0, transparent 20px, black 21px);
+            /* ヘッダーにも同じ切り欠きデザインを適用 */
+            -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 0 9 10"><path d="M -2 0 L 6 0 Q 7 0 7 1 L 7 9 Q 7 10 6 10 L 0 10 Q -1 10 -1 9 L -1 1 Q -1 0 -2 0" fill="black"/></svg>');
+            mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 0 9 10"><path d="M -2 0 L 6 0 Q 7 0 7 1 L 7 9 Q 7 10 6 10 L 0 10 Q -1 10 -1 9 L -1 1 Q -1 0 -2 0" fill="black"/></svg>');
+            -webkit-mask-size: 100% 100%;
+            mask-size: 100% 100%;
         }
 
         .month-number { font-size: 48px; font-weight: 700; line-height: 1; margin-right: 20px; }
@@ -80,15 +81,15 @@
             text-align: center;
         }
 
-        /* カレンダーグリッド：高さに合わせて自動調整 */
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            grid-template-rows: repeat(6, 1fr); /* 6行固定で高さを均等に */
+            grid-template-rows: repeat(6, 1fr);
             gap: 8px;
-            flex: 1; /* 残りの高さをすべて使う */
+            flex: 1;
         }
 
+        /* ★ 指定されたSVGパスをマスクに適用 ★ */
         .calendar-day {
             background: white;
             padding: 5px 8px;
@@ -96,9 +97,16 @@
             font-family: 'Caveat', cursive;
             font-size: 18px;
             font-weight: 700;
-            overflow: hidden; /* タスクがはみ出さないように */
-            -webkit-mask-image: radial-gradient(circle 12px at 0 0, transparent 12px, black 13px);
-            mask-image: radial-gradient(circle 12px at 0 0, transparent 12px, black 13px);
+            overflow: hidden;
+            
+            /* SVGマスク設定 */
+            -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 0 9 10"><path d="M -2 0 L 6 0 Q 7 0 7 1 L 7 9 Q 7 10 6 10 L 0 10 Q -1 10 -1 9 L -1 1 Q -1 0 -2 0" fill="black"/></svg>');
+            mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 0 9 10"><path d="M -2 0 L 6 0 Q 7 0 7 1 L 7 9 Q 7 10 6 10 L 0 10 Q -1 10 -1 9 L -1 1 Q -1 0 -2 0" fill="black"/></svg>');
+            -webkit-mask-size: 100% 100%;
+            mask-size: 100% 100%;
+            mask-repeat: no-repeat;
+            
+            transition: transform 0.2s;
         }
 
         .day-prev { background-color: #a8ffff; color: #72d6d6; }
@@ -107,7 +115,6 @@
         .color-sun { color: #ff5b5b !important; }
         .color-sat { color: #9c65ff !important; }
 
-        /* 右側：タスクサイドバー */
         .task-window { 
             width: 260px; 
             background: #ffffff; 
@@ -117,20 +124,18 @@
             flex-direction: column;
             height: 100%;
             box-sizing: border-box;
-            -webkit-mask-image: radial-gradient(circle 15px at 0 0, transparent 15px, black 16px);
-            mask-image: radial-gradient(circle 15px at 0 0, transparent 15px, black 16px);
+            /* サイドバーも統一感のために同じ形状のマスクを適用 */
+            -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 0 9 10"><path d="M -2 0 L 6 0 Q 7 0 7 1 L 7 9 Q 7 10 6 10 L 0 10 Q -1 10 -1 9 L -1 1 Q -1 0 -2 0" fill="black"/></svg>');
+            mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 0 9 10"><path d="M -2 0 L 6 0 Q 7 0 7 1 L 7 9 Q 7 10 6 10 L 0 10 Q -1 10 -1 9 L -1 1 Q -1 0 -2 0" fill="black"/></svg>');
+            -webkit-mask-size: 100% 100%;
+            mask-size: 100% 100%;
         }
 
-        /* タスクリストのみスクロール可能にする */
         .task-list { 
             flex: 1; 
             overflow-y: auto; 
             margin-top: 10px;
-            padding-right: 5px;
         }
-        /* スクロールバーの見た目を細く */
-        .task-list::-webkit-scrollbar { width: 5px; }
-        .task-list::-webkit-scrollbar-thumb { background: #c9e9ea; border-radius: 10px; }
 
         .task-item { 
             background: #f0fdfd; 
@@ -153,6 +158,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            font-family: 'Nunito', sans-serif;
         }
 
         .add-task-btn {
@@ -202,7 +208,6 @@
 </div>
 
 <script>
-    // Firebaseの設定は変更なし
     const firebaseConfig = {
         apiKey: "AIzaSyCbyXSgnzkOGU8269J9f8axIkbC34vb_bQ",
         authDomain: "my-calendar-app-495505.firebaseapp.com",
@@ -237,10 +242,12 @@
     });
 
     async function handleLogin() {
-        const result = await auth.signInWithPopup(provider);
-        accessToken = result.credential.accessToken;
-        localStorage.setItem("google_api_token", accessToken);
-        searchDriveForSpreadsheet();
+        try {
+            const result = await auth.signInWithPopup(provider);
+            accessToken = result.credential.accessToken;
+            localStorage.setItem("google_api_token", accessToken);
+            searchDriveForSpreadsheet();
+        } catch (e) { alert(e.message); }
     }
 
     async function searchDriveForSpreadsheet() {
@@ -252,7 +259,6 @@
             spreadsheetId = data.files[0].id;
             initCalendarApp();
         } else {
-            // 新規作成ロジック（省略せず以前のものを継承）
             initCalendarApp(); 
         }
     }
@@ -261,7 +267,6 @@
         document.getElementById("setupScreen").style.display = "none";
         document.getElementById("mainApp").style.display = "flex";
         generateCalendar();
-        if (!isGuestMode) loadTasks();
     }
 
     function generateCalendar() {
@@ -285,13 +290,11 @@
         div.className = `calendar-day ${info.type}`;
         div.innerHTML = `<span>${info.d}</span>`;
         if (info.type.includes("day-current")) {
-            const dateStr = `2026-05-${info.d.toString().padStart(2, '0')}`;
-            div.id = `cell-${dateStr}`;
+            div.id = `cell-2026-05-${info.d.toString().padStart(2, '0')}`;
             div.ondragover = (e) => e.preventDefault();
             div.ondrop = (e) => {
                 const title = e.dataTransfer.getData("text");
                 renderPlacedTask(div.id, title);
-                saveTask(dateStr, title);
             };
         }
         return div;
@@ -318,8 +321,6 @@
         document.getElementById("taskList").appendChild(el);
     }
 
-    async function loadTasks() { /* 以前のスプレッドシート読み込みロジック */ }
-    function saveTask(date, title) { /* 以前のスプレッドシート保存ロジック */ }
     function handleLogout() { localStorage.clear(); location.reload(); }
 </script>
 </body>
